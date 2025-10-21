@@ -1,0 +1,38 @@
+{
+  "filename": "test_hhigh.idml",
+  "extractedAt": "2025-10-21T10:47:26.238Z",
+  "totalTextBoxes": 5,
+  "totalCharacters": 370,
+  "textBoxes": [
+    {
+      "id": "4bbf0423-70f8-4254-a875-f65761d8c961",
+      "storyId": "Story_u14d",
+      "content": "But at that moment he looked scared and small I hated what they turned him into.",
+      "characterCount": 80
+    },
+    {
+      "id": "eb2010a8-134f-4c3b-83ce-0a36903b30af",
+      "storyId": "Story_u134",
+      "content": "I was the tax collector, and not just any tax collector, it was a custom-house offical. they were the worst and most hated.",
+      "characterCount": 123
+    },
+    {
+      "id": "e8d402ad-b23a-4409-b068-26e1bc0059c5",
+      "storyId": "Story_u114",
+      "content": "And they were going to reap whaat they sowed. ",
+      "characterCount": 46
+    },
+    {
+      "id": "fffa23b8-0ed2-4718-a2e5-5e5360d7e3e6",
+      "storyId": "Story_ufd",
+      "content": "I was watching. I saw everything and I never forgot. ",
+      "characterCount": 53
+    },
+    {
+      "id": "1aa29ed0-71f9-419a-bde3-5a4e3a6516d8",
+      "storyId": "Story_ue5",
+      "content": "That was the moment I decided I was never going to be like my Father",
+      "characterCount": 68
+    }
+  ]
+}

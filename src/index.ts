@@ -37,7 +37,7 @@ async function main() {
   
   // Check if environment is configured
   const submitUrl = process.env.TRANSLATION_SUBMIT_WEBHOOK_URL;
-  const statusUrl = process.env.TRANSLATION_STATUS_WEBHOOK_URL;
+  const statusUrl = process.env.TRANSLATION_DOWNLOAD_WEBHOOK_URL;
   
   if (!submitUrl || !statusUrl) {
     console.log('⚠️  Environment not configured');

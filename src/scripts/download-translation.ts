@@ -11,12 +11,12 @@ dotenv.config();
 
 function getWebhookConfig(): WebhookConfig {
   const submitUrl = process.env.TRANSLATION_SUBMIT_WEBHOOK_URL;
-  const statusUrl = process.env.TRANSLATION_STATUS_WEBHOOK_URL;
+  const statusUrl = process.env.TRANSLATION_DOWNLOAD_WEBHOOK_URL;
 
   if (!submitUrl || !statusUrl) {
     console.error('❌ Missing required environment variables:');
     console.error('   TRANSLATION_SUBMIT_WEBHOOK_URL - URL to submit translation requests');
-    console.error('   TRANSLATION_STATUS_WEBHOOK_URL - URL to check translation status');
+    console.error('   TRANSLATION_DOWNLOAD_WEBHOOK_URL - URL to download translation from Google Doc');
     process.exit(1);
   }
 

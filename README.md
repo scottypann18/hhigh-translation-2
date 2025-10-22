@@ -20,7 +20,7 @@ npm install
 2. Configure your webhooks in `.env`:
 ```bash
 TRANSLATION_SUBMIT_WEBHOOK_URL=https://your-make-scenario.com/submit
-TRANSLATION_STATUS_WEBHOOK_URL=https://your-make-scenario.com/status
+TRANSLATION_DOWNLOAD_WEBHOOK_URL=https://your-make-scenario.com/status
 ```
 
 3. Build the project:

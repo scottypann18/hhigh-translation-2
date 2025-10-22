@@ -15,6 +15,18 @@ export const SUPPORTED_LANGUAGES: LanguageConfig[] = [
     expansionFactor: 1.0
   },
   {
+    code: 'en-US',
+    name: 'English (United States)',
+    direction: 'LeftToRightDirection',
+    expansionFactor: 1.0
+  },
+  {
+    code: 'en-GB',
+    name: 'English (United Kingdom)',
+    direction: 'LeftToRightDirection',
+    expansionFactor: 1.0
+  },
+  {
     code: 'es',
     name: 'Spanish',
     direction: 'LeftToRightDirection',

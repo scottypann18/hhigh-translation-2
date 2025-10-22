@@ -47,8 +47,10 @@ This will show:
 ```
 📄 Analyzing: document.idml
 
-📊 Total text boxes: 457
+📊 Found 7 standard text boxes + 303 XML text boxes = 310 total
 ```
+
+The tool automatically detects BOTH standard text frames AND XML-structured text in your IDML files.
 
 For large files (100+ text boxes), consider submitting in batches to avoid timeouts.
 
@@ -123,3 +125,4 @@ This will:
 - RTL languages automatically get proper text direction
 - Font recommendations available for each language
 - Text expansion factors help predict layout changes
+- **Automatic Parser Detection**: The system automatically uses both standard and XML parsers to capture all text in your IDML files, regardless of structure

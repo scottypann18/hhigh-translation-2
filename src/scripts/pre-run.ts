@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IdmlParser } from '../services/IdmlParser.js';
+import { IdmlParserXML } from '../services/IdmlParserXML.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,12 +30,27 @@ async function preRun() {
     console.log(`📄 Analyzing: ${path.basename(filePath)}`);
     
     const idmlParser = new IdmlParser();
+    const idmlParserXML = new IdmlParserXML();
     const idmlBuffer = fs.readFileSync(filePath);
     
+    // Parse with both parsers
     await idmlParser.loadIdmlFile(idmlBuffer);
-    const document = await idmlParser.parseDocument();
+    const standardDocument = await idmlParser.parseDocument();
     
-    console.log(`\n📊 Total text boxes: ${document.textBoxes.length}`);
+    await idmlParserXML.loadIdmlFile(idmlBuffer);
+    const xmlDocument = await idmlParserXML.parseDocument();
+    
+    // Combine text boxes from both parsers, removing duplicates by ID
+    const allTextBoxes = [...standardDocument.textBoxes];
+    const existingIds = new Set(standardDocument.textBoxes.map(tb => tb.id));
+    
+    for (const xmlTextBox of xmlDocument.textBoxes) {
+      if (!existingIds.has(xmlTextBox.id)) {
+        allTextBoxes.push(xmlTextBox);
+      }
+    }
+    
+    console.log(`\n📊 Found ${standardDocument.textBoxes.length} standard text boxes + ${xmlDocument.textBoxes.length} XML text boxes = ${allTextBoxes.length} total`);
 
   } catch (error) {
     console.error('❌ Error analyzing file:', error instanceof Error ? error.message : error);

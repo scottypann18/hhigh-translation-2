@@ -1,14 +1,17 @@
 import { IdmlParser } from './IdmlParser.js';
+import { IdmlParserXML } from './IdmlParserXML.js';
 import { WebhookService } from './WebhookService.js';
 import { TranslationRequest, TranslationStatusResponse, TextBox, WebhookConfig } from '../types/index.js';
 import { LanguageConfigManager } from '../config/languages.js';
 
 export class TranslationService {
   private idmlParser: IdmlParser;
+  private idmlParserXML: IdmlParserXML;
   private webhookService: WebhookService;
 
   constructor(webhookConfig: WebhookConfig) {
     this.idmlParser = new IdmlParser();
+    this.idmlParserXML = new IdmlParserXML();
     this.webhookService = new WebhookService(webhookConfig);
   }
 
@@ -46,13 +49,33 @@ export class TranslationService {
       warnings.push(`ℹ️ Expected text expansion: ${Math.round(expectedExpansion * 100)}% - check for potential overflow`);
     }
     
-    // Parse the IDML file and extract text boxes
+    // Parse with both parsers to capture all text boxes
     await this.idmlParser.loadIdmlFile(idmlBuffer);
-    const document = await this.idmlParser.parseDocument();
+    const standardDocument = await this.idmlParser.parseDocument();
     
-    if (document.textBoxes.length === 0) {
+    await this.idmlParserXML.loadIdmlFile(idmlBuffer);
+    const xmlDocument = await this.idmlParserXML.parseDocument();
+    
+    // Combine text boxes from both parsers, removing duplicates by ID
+    const allTextBoxes = [...standardDocument.textBoxes];
+    const existingIds = new Set(standardDocument.textBoxes.map(tb => tb.id));
+    
+    for (const xmlTextBox of xmlDocument.textBoxes) {
+      if (!existingIds.has(xmlTextBox.id)) {
+        allTextBoxes.push(xmlTextBox);
+      }
+    }
+    
+    console.log(`Found ${standardDocument.textBoxes.length} standard text boxes + ${xmlDocument.textBoxes.length} XML text boxes = ${allTextBoxes.length} total`);
+    
+    if (allTextBoxes.length === 0) {
       throw new Error('No text boxes found in the IDML file');
     }
+    
+    const document = {
+      ...standardDocument,
+      textBoxes: allTextBoxes
+    };
 
     // Filter text boxes by index range if specified
     let textBoxesToSubmit = document.textBoxes;
@@ -131,15 +154,54 @@ export class TranslationService {
     // Fetch translation from Google Doc
     const translationResponse = await this.webhookService.checkTranslationStatus(googleDocId, targetLanguage);
 
-    // Parse original IDML file
+    // Parse with both parsers to capture all text boxes
     await this.idmlParser.loadIdmlFile(originalIdmlBuffer);
-    const document = await this.idmlParser.parseDocument();
+    const standardDocument = await this.idmlParser.parseDocument();
+    
+    await this.idmlParserXML.loadIdmlFile(originalIdmlBuffer);
+    const xmlDocument = await this.idmlParserXML.parseDocument();
+    
+    // Combine text boxes from both parsers, removing duplicates by ID
+    const allTextBoxes = [...standardDocument.textBoxes];
+    const existingIds = new Set(standardDocument.textBoxes.map(tb => tb.id));
+    
+    for (const xmlTextBox of xmlDocument.textBoxes) {
+      if (!existingIds.has(xmlTextBox.id)) {
+        allTextBoxes.push(xmlTextBox);
+      }
+    }
+    
+    console.log(`Found ${standardDocument.textBoxes.length} standard text boxes + ${xmlDocument.textBoxes.length} XML text boxes = ${allTextBoxes.length} total`);
+    
+    const document = {
+      ...standardDocument,
+      textBoxes: allTextBoxes
+    };
 
     // Update text boxes with translated content
     const updatedTextBoxes = this.mergeTranslations(document.textBoxes, translationResponse);
 
-    // Generate updated IDML file with correct text direction
-    const updatedIdmlBuffer = await this.idmlParser.updateTextBoxesWithLanguage(updatedTextBoxes, targetLanguage);
+    // Separate standard and XML text boxes based on original source
+    const standardTextBoxIds = new Set(standardDocument.textBoxes.map(tb => tb.id));
+    const standardTextBoxes = updatedTextBoxes.filter(tb => standardTextBoxIds.has(tb.id));
+    const xmlTextBoxes = updatedTextBoxes.filter(tb => !standardTextBoxIds.has(tb.id));
+
+    console.log(`Updating: ${standardTextBoxes.length} standard text boxes, ${xmlTextBoxes.length} XML text boxes`);
+
+    // Apply updates from both parsers
+    let updatedIdmlBuffer = originalIdmlBuffer;
+
+    // First, apply standard parser updates if there are any standard text boxes
+    if (standardTextBoxes.length > 0) {
+      await this.idmlParser.loadIdmlFile(updatedIdmlBuffer);
+      updatedIdmlBuffer = await this.idmlParser.updateTextBoxesWithLanguage(standardTextBoxes, targetLanguage);
+    }
+
+    // Then, apply XML parser updates if there are any XML text boxes
+    if (xmlTextBoxes.length > 0) {
+      await this.idmlParserXML.loadIdmlFile(updatedIdmlBuffer);
+      updatedIdmlBuffer = await this.idmlParserXML.updateTextBoxesWithLanguage(xmlTextBoxes, targetLanguage);
+    }
 
     // Generate report
     const report = {

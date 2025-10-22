@@ -34,10 +34,14 @@ async function submitTranslation() {
   
   if (args.length < 3) {
     console.error('❌ Error: see README for submit script instructions');
+    console.error('Usage: npm run submit -- <file> <source-lang> <target-lang> [start-index] [end-index]');
+    console.error('Example: npm run submit -- input/file.idml en es 0 10');
     process.exit(1);
   }
 
-  const [filePath, sourceLanguage, targetLanguage] = args;
+  const [filePath, sourceLanguage, targetLanguage, startIndexStr, endIndexStr] = args;
+  const startIndex = startIndexStr ? parseInt(startIndexStr) : undefined;
+  const endIndex = endIndexStr ? parseInt(endIndexStr) : undefined;
 
   try {
     // Validate file exists
@@ -57,7 +61,22 @@ async function submitTranslation() {
       process.exit(1);
     }
 
-    console.log('🔄 Submitting IDML file for translation...');
+    // Validate index range if provided
+    if (startIndex !== undefined && startIndex < 0) {
+      console.error(`❌ Start index must be >= 0`);
+      process.exit(1);
+    }
+
+    if (endIndex !== undefined && startIndex !== undefined && endIndex < startIndex) {
+      console.error(`❌ End index must be >= start index`);
+      process.exit(1);
+    }
+
+    if (startIndex !== undefined || endIndex !== undefined) {
+      console.log(`🔄 Submitting text boxes ${startIndex ?? 0} to ${endIndex ?? 'end'}...`);
+    } else {
+      console.log('🔄 Submitting IDML file for translation...');
+    }
     
     const webhookConfig = getWebhookConfig();
     const service = new TranslationService(webhookConfig);
@@ -69,7 +88,9 @@ async function submitTranslation() {
       idmlBuffer,
       sourceLanguage,
       targetLanguage,
-      filename
+      filename,
+      startIndex,
+      endIndex
     );
 
     console.log('✅ Translation submitted successfully!');

@@ -19,7 +19,9 @@ export class TranslationService {
     idmlBuffer: Buffer,
     sourceLanguage: string,
     targetLanguage: string,
-    filename: string
+    filename: string,
+    startIndex?: number,
+    endIndex?: number
   ): Promise<{ textBoxCount: number; report: any; warnings: string[] }> {
     
     // Validate languages
@@ -52,10 +54,24 @@ export class TranslationService {
       throw new Error('No text boxes found in the IDML file');
     }
 
+    // Filter text boxes by index range if specified
+    let textBoxesToSubmit = document.textBoxes;
+    if (startIndex !== undefined || endIndex !== undefined) {
+      const start = startIndex ?? 0;
+      const end = endIndex !== undefined ? endIndex + 1 : document.textBoxes.length;
+      textBoxesToSubmit = document.textBoxes.slice(start, end);
+      
+      if (textBoxesToSubmit.length === 0) {
+        throw new Error(`No text boxes found in range ${start} to ${endIndex ?? 'end'}`);
+      }
+      
+      warnings.push(`ℹ️ Submitting ${textBoxesToSubmit.length} text boxes (indices ${start}-${end - 1}) out of ${document.textBoxes.length} total`);
+    }
+
     // Prepare translation request
     const translationRequest: TranslationRequest = {
       id: filename, // Use filename as identifier
-      textBoxes: document.textBoxes,
+      textBoxes: textBoxesToSubmit,
       sourceLanguage,
       targetLanguage,
       metadata: {
@@ -74,14 +90,17 @@ export class TranslationService {
     // Generate report
     const report = {
       originalTextBoxCount: document.textBoxes.length,
+      submittedTextBoxCount: textBoxesToSubmit.length,
       sourceLanguage,
       targetLanguage,
       filename,
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
+      ...(startIndex !== undefined && { startIndex }),
+      ...(endIndex !== undefined && { endIndex })
     };
 
     return {
-      textBoxCount: document.textBoxes.length,
+      textBoxCount: textBoxesToSubmit.length,
       report,
       warnings
     };

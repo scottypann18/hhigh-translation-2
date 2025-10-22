@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES: LanguageConfig[] = [
     name: 'Spanish',
     direction: 'LeftToRightDirection',
     fontRecommendations: ['Arial', 'Times New Roman', 'Calibri'],
-    expansionFactor: 1.15
+    expansionFactor: 1.0
   },
   {
     code: 'fr',

@@ -64,8 +64,9 @@ async function downloadTranslation() {
       targetLanguage
     );
 
-    // Generate output filename as output/hhigh_[language].idml
-    const outputFilename = `hhigh_${targetLanguage}.idml`;
+    // Generate output filename using original filename + language code
+    const originalBasename = path.basename(originalFilePath, '.idml');
+    const outputFilename = `${originalBasename}_${targetLanguage}.idml`;
     const outputPath = path.join('output', outputFilename);
     
     // Ensure output directory exists

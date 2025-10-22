@@ -35,7 +35,24 @@ npm start
 ```
 ## Workflow
 
-### 1. Submit IDML for Translation
+### 1. Check Text Box Count (Pre-Run)
+
+Before submitting, check how many text boxes are in your IDML file:
+
+```bash
+npm run pre-run -- input/document.idml
+```
+
+This will show:
+```
+📄 Analyzing: document.idml
+
+📊 Total text boxes: 457
+```
+
+For large files (100+ text boxes), consider submitting in batches to avoid timeouts.
+
+### 2. Submit IDML for Translation
 
 Extract text and send to your webhook (which sends to Google Docs for human translation):
 
@@ -47,7 +64,17 @@ npm run submit -- input/document.idml en fa
 - `en` - Source language code
 - `fa` - Target language code (Persian/Farsi in this example)
 
-### 2. Download Translated IDML
+**For large files, submit in batches:**
+
+```bash
+npm run submit -- input/document.idml en fa 0 49
+npm run submit -- input/document.idml en fa 50 99
+npm run submit -- input/document.idml en fa 100 149
+```
+
+This submits text boxes 0-49, 50-99, and 100-149 respectively.
+
+### 3. Download Translated IDML
 
 Once translation is complete in Google Docs, create the translated IDML using the Google Doc ID:
 
@@ -63,7 +90,7 @@ This will:
 - Fetch translations from your Google Doc via webhook
 - Apply translations to the IDML structure
 - Set correct text direction (RTL for fa/ar/he/ur)
-- Save to `output/hhigh_fa.idml` (filename is auto-generated as `hhigh_[language].idml`)
+- Save to `output/document_fa.idml` (uses original filename + language code)
 
 ## Supported Languages
 

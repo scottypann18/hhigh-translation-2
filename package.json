@@ -10,6 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "test": "jest",
     "clean": "rm -rf dist",
+    "pre-run": "tsx src/scripts/pre-run.ts",
     "submit": "tsx src/scripts/submit-translation.ts",
     "download": "tsx src/scripts/download-translation.ts",
     "debug-idml": "tsx src/scripts-debugging/debug-idml.ts"

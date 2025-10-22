@@ -1,0 +1,29 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.local
+
+# Input and output IDML files
+input/*
+output/*
+
+# Keep the directories but ignore their contents
+!input/.gitkeep
+!output/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

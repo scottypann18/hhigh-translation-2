@@ -33,18 +33,7 @@ async function submitTranslation() {
   const args = process.argv.slice(2);
   
   if (args.length < 3) {
-    console.log('Usage: npm run submit -- <idml-file> <source-language> <target-language>');
-    console.log('');
-    console.log('Examples:');
-    console.log('  npm run submit -- input/document.idml en fa');
-    console.log('  npm run submit -- input/brochure.idml en ar');
-    console.log('');
-    console.log('Supported languages:');
-    const languages = LanguageConfigManager.getAllSupportedLanguages();
-    languages.forEach(lang => {
-      const direction = lang.direction === 'RightToLeftDirection' ? 'RTL' : 'LTR';
-      console.log(`  ${lang.code.padEnd(4)} - ${lang.name} (${direction})`);
-    });
+    console.error('❌ Error: see README for submit script instructions');
     process.exit(1);
   }
 
@@ -69,8 +58,6 @@ async function submitTranslation() {
     }
 
     console.log('🔄 Submitting IDML file for translation...');
-    console.log(`📄 File: ${filePath}`);
-    console.log(`🌐 ${sourceLanguage} → ${targetLanguage}`);
     
     const webhookConfig = getWebhookConfig();
     const service = new TranslationService(webhookConfig);
@@ -78,7 +65,7 @@ async function submitTranslation() {
     const idmlBuffer = fs.readFileSync(filePath);
     const filename = path.basename(filePath);
     
-    const result = await service.submitIdmlForTranslation(
+    await service.submitIdmlForTranslation(
       idmlBuffer,
       sourceLanguage,
       targetLanguage,
@@ -86,18 +73,6 @@ async function submitTranslation() {
     );
 
     console.log('✅ Translation submitted successfully!');
-    console.log(`📊 Text boxes sent: ${result.textBoxCount}`);
-    console.log(`📄 Filename: ${filename}`);
-    console.log(`🌐 Target language: ${targetLanguage}`);
-    
-    if (result.warnings && result.warnings.length > 0) {
-      console.log('\n⚠️  Warnings:');
-      result.warnings.forEach(warning => console.log(`   ${warning}`));
-    }
-    
-    console.log('\n📝 Next steps:');
-    console.log(`   1. Wait for human translators to complete the work in Google Docs`);
-    console.log(`   2. Download translations: npm run download -- ${filePath} ${targetLanguage}`);
 
   } catch (error) {
     console.error('❌ Error submitting translation:', error instanceof Error ? error.message : error);

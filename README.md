@@ -1,6 +1,6 @@
 # IDML Translation Tool
 
-A TypeScript-based tool for extracting text from Adobe InDesign IDML files, sending it for human translation via webhooks, and creating translated IDML files with proper RTL/LTR support.
+A TypeScript-based tool for extracting text from Adobe InDesign IDML files, sending it for human translation in Google Docs via webhooks and make.com, and creating translated IDML files with proper RTL/LTR support. Note there is no UI it is designed to run using the CLI.
 
 ## Features
 
@@ -26,8 +26,13 @@ TRANSLATION_STATUS_WEBHOOK_URL=https://your-make-scenario.com/status
 3. Build the project:
 ```bash
 npm run build
-```
 
+```
+4. To see avaible commmands and quick start
+```bash
+npm start
+
+```
 ## Workflow
 
 ### 1. Submit IDML for Translation
@@ -70,19 +75,7 @@ This will:
 ### Right-to-Left (RTL)
 - Arabic (ar), Persian/Farsi (fa), Hebrew (he), Urdu (ur)
 
-## Webhook Requirements
-
-### Submit Webhook (TRANSLATION_SUBMIT_WEBHOOK_URL)
-Receives the text boxes and should send them to Google Docs for human translation.
-
-### Status Webhook (TRANSLATION_STATUS_WEBHOOK_URL)
-Receives a Google Doc ID and language, should extract translations from the Google Doc.
-
-Query parameters sent:
-- `docId` - The Google Doc ID
-- `language` - The target language code
-
-Example webhook response:
+### Example webhook response:
 ```json
 {
   "id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
@@ -95,30 +88,6 @@ Example webhook response:
     }
   ]
 }
-```
-
-## Scripts
-
-- `npm run extract -- <file>` - Extract text only (no submission)
-- `npm run submit -- <file> <from> <to>` - Submit for translation
-- `npm run download -- <file> <doc-id> <lang>` - Download completed translation and create IDML
-- `npm run debug-idml -- <file>` - Debug IDML structure
-
-## Example Complete Workflow
-
-```bash
-# 1. Submit document for Persian translation
-npm run submit -- input/hhigh.idml en fa
-
-# 2. Wait for human translators to complete work in Google Docs
-#    (Your Make.com scenario handles this)
-#    Copy the Google Doc ID from the URL
-
-# 3. Download the translated file using the Google Doc ID
-npm run download -- input/hhigh.idml 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms fa
-
-# 4. Output is automatically saved to: output/hhigh_fa.idml
-# 5. Open output/hhigh_fa.idml in Adobe InDesign
 ```
 
 ## Notes

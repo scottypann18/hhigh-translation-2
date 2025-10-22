@@ -44,8 +44,7 @@ export class TranslationService {
       warnings.push(`ℹ️ Expected text expansion: ${Math.round(expectedExpansion * 100)}% - check for potential overflow`);
     }
     
-    // Step 1: Parse the IDML file and extract text boxes
-    console.log('Parsing IDML file...');
+    // Parse the IDML file and extract text boxes
     await this.idmlParser.loadIdmlFile(idmlBuffer);
     const document = await this.idmlParser.parseDocument();
     
@@ -53,9 +52,7 @@ export class TranslationService {
       throw new Error('No text boxes found in the IDML file');
     }
 
-    console.log(`Found ${document.textBoxes.length} text boxes to translate`);
-
-    // Step 2: Prepare translation request
+    // Prepare translation request
     const translationRequest: TranslationRequest = {
       id: filename, // Use filename as identifier
       textBoxes: document.textBoxes,
@@ -67,15 +64,14 @@ export class TranslationService {
       }
     };
 
-    // Step 3: Submit for translation (goes to Google Doc)
-    console.log('Submitting text boxes for translation...');
+    // Submit for translation (goes to Google Doc)
     const submissionResponse = await this.webhookService.submitForTranslation(translationRequest);
 
     if (submissionResponse.status !== 'accepted') {
       throw new Error(`Translation submission failed: ${submissionResponse.error}`);
     }
 
-    // Step 4: Generate report
+    // Generate report
     const report = {
       originalTextBoxCount: document.textBoxes.length,
       sourceLanguage,
@@ -113,72 +109,25 @@ export class TranslationService {
     targetLanguage: string
   ): Promise<{ translatedFile: Buffer; report: any }> {
     
-    // Step 1: Fetch translation from Google Doc
-    console.log('Fetching translation from Google Doc...');
+    // Fetch translation from Google Doc
     const translationResponse = await this.webhookService.checkTranslationStatus(googleDocId, targetLanguage);
 
-    if (translationResponse.status !== 'completed') {
-      throw new Error(`Translation not completed. Status: ${translationResponse.status}`);
-    }
-
-    // Step 2: Parse original IDML file
-    console.log('Parsing original IDML file...');
+    // Parse original IDML file
     await this.idmlParser.loadIdmlFile(originalIdmlBuffer);
     const document = await this.idmlParser.parseDocument();
 
-    // Step 3: Update text boxes with translated content
+    // Update text boxes with translated content
     const updatedTextBoxes = this.mergeTranslations(document.textBoxes, translationResponse);
 
-    // Step 4: Generate updated IDML file with correct text direction
-    console.log('Generating updated IDML file with language-specific formatting...');
+    // Generate updated IDML file with correct text direction
     const updatedIdmlBuffer = await this.idmlParser.updateTextBoxesWithLanguage(updatedTextBoxes, targetLanguage);
 
-    // Step 5: Generate report
+    // Generate report
     const report = {
       originalTextBoxCount: document.textBoxes.length,
       translatedTextBoxCount: translationResponse.translatedTextBoxes.length,
       targetLanguage,
       googleDocId,
-      completedAt: new Date().toISOString()
-    };
-
-    return {
-      translatedFile: updatedIdmlBuffer,
-      report
-    };
-  }
-
-  /**
-   * Full workflow: submit and wait for completion (for automation)
-   * Note: This requires polling the Google Doc or you'll need to implement a delay mechanism
-   */
-  async translateIdmlFile(
-    idmlBuffer: Buffer,
-    sourceLanguage: string,
-    targetLanguage: string,
-    filename: string,
-    googleDocId: string
-  ): Promise<{ translatedFile: Buffer; report: any }> {
-    
-    // Submit for translation
-    const submission = await this.submitIdmlForTranslation(idmlBuffer, sourceLanguage, targetLanguage, filename);
-    
-    // Wait for completion (polling the Google Doc)
-    console.log(`Waiting for translation completion in Google Doc: ${googleDocId}`);
-    const translationResponse = await this.webhookService.waitForTranslationCompletion(
-      googleDocId, 
-      targetLanguage
-    );
-
-    // Parse original IDML and create updated version
-    await this.idmlParser.loadIdmlFile(idmlBuffer);
-    const document = await this.idmlParser.parseDocument();
-    const updatedTextBoxes = this.mergeTranslations(document.textBoxes, translationResponse);
-    const updatedIdmlBuffer = await this.idmlParser.updateTextBoxesWithLanguage(updatedTextBoxes, targetLanguage);
-
-    const report = {
-      ...submission.report,
-      translatedTextBoxCount: translationResponse.translatedTextBoxes.length,
       completedAt: new Date().toISOString()
     };
 
@@ -196,15 +145,9 @@ export class TranslationService {
       translationMap.set(translated.id, translated.translatedContent);
     }
 
-    console.log('\n=== MERGE DEBUG ===');
-    console.log('Translation Map Keys:', Array.from(translationMap.keys()));
-    console.log('Original TextBox IDs:', originalTextBoxes.map(tb => tb.id));
-    console.log('=== END MERGE DEBUG ===\n');
-
     // Update original text boxes with translations
     return originalTextBoxes.map(textBox => {
       const translatedContent = translationMap.get(textBox.id);
-      console.log(`Matching ${textBox.id}: ${translatedContent ? 'FOUND' : 'NOT FOUND'}`);
       if (translatedContent) {
         return {
           ...textBox,

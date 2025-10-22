@@ -291,7 +291,8 @@ export class IdmlParser {
       }
     }
 
-    // Update story files with new text content and direction
+    // Get the expansion factor for the target language
+    // Update story files with new text content, direction, and font size scaling
     await this.updateStoryFilesWithLanguage(newZip, textBoxes, targetLanguage);
 
     // Generate the updated IDML file
@@ -347,8 +348,13 @@ export class IdmlParser {
     console.log(`TextBoxes to update: ${textBoxes.length}`);
     console.log(`TextBox IDs:`, textBoxes.map(tb => `${tb.id} (storyId: ${tb.storyId})`));
 
-    // Get the text direction for the target language
+    // Get the text direction and expansion factor for the target language
     const textDirection = LanguageConfigManager.getTextDirection(targetLanguage);
+    const expansionFactor = LanguageConfigManager.getExpansionFactor(targetLanguage);
+    
+    // Calculate font size scaling: if text expands 115%, reduce font to ~87% (1/1.15)
+    const fontSizeScale = 1 / expansionFactor;
+    console.log(`Font size scaling for ${targetLanguage}: ${(fontSizeScale * 100).toFixed(1)}% (expansion: ${(expansionFactor * 100).toFixed(0)}%)`);
 
     for (const storyFile of storyFiles) {
       const storyId = storyFile.replace('Stories/', '').replace('.xml', '');
@@ -364,11 +370,12 @@ export class IdmlParser {
         
         console.log(`  Original content preview: ${content.substring(content.indexOf('<Content>'), content.indexOf('</Content>') + 10)}`);
         
-        // Update both content and direction
+        // Update content, direction, and font size
         const updatedContent = await this.updateStoryContentWithDirection(
           content, 
           relevantTextBoxes, 
-          textDirection
+          textDirection,
+          fontSizeScale
         );
         
         console.log(`  Updated content preview: ${updatedContent.substring(updatedContent.indexOf('<Content>'), updatedContent.indexOf('</Content>') + 10)}`);
@@ -398,10 +405,11 @@ export class IdmlParser {
     return builder.buildObject(parsed);
   }
 
-  private updateTextInParagraphs(paragraphs: any[], newContent: string): void {
+  private updateTextInParagraphs(paragraphs: any[], newContent: string, fontSizeScale: number = 1.0): void {
     // Replace all text content in all paragraphs with the new content
     console.log(`\n=== updateTextInParagraphs DEBUG ===`);
     console.log(`New content to insert: ${newContent.substring(0, 50)}...`);
+    console.log(`Font size scale: ${(fontSizeScale * 100).toFixed(1)}%`);
     console.log(`Paragraphs array exists: ${!!paragraphs}`);
     console.log(`Paragraphs length: ${paragraphs?.length}`);
     
@@ -419,6 +427,14 @@ export class IdmlParser {
         for (let j = 0; j < para.CharacterStyleRange.length; j++) {
           const charRange = para.CharacterStyleRange[j];
           console.log(`  CharRange ${j} before:`, charRange.Content);
+          
+          // Apply font size scaling if not 1.0
+          if (fontSizeScale !== 1.0 && charRange.$) {
+            const currentSize = parseFloat(charRange.$.PointSize || '12');
+            const newSize = currentSize * fontSizeScale;
+            charRange.$.PointSize = newSize.toFixed(2);
+            console.log(`  Font size adjusted: ${currentSize.toFixed(2)}pt → ${newSize.toFixed(2)}pt`);
+          }
           
           if (i === 0 && j === 0) {
             // Put all the new content in the first character range of the first paragraph
@@ -438,7 +454,8 @@ export class IdmlParser {
   private async updateStoryContentWithDirection(
     originalContent: string, 
     textBoxes: TextBox[], 
-    textDirection: 'LeftToRightDirection' | 'RightToLeftDirection'
+    textDirection: 'LeftToRightDirection' | 'RightToLeftDirection',
+    fontSizeScale: number = 1.0
   ): Promise<string> {
     const parsed = await parseXML(originalContent) as any;
 
@@ -468,7 +485,7 @@ export class IdmlParser {
     if (story.ParagraphStyleRange) {
       for (const textBox of textBoxes) {
         console.log(`Updating story with translated content: ${textBox.content.substring(0, 50)}...`);
-        this.updateTextInParagraphs(story.ParagraphStyleRange, textBox.content);
+        this.updateTextInParagraphs(story.ParagraphStyleRange, textBox.content, fontSizeScale);
       }
     } else {
       console.error('No ParagraphStyleRange found in story');

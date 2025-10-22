@@ -13,7 +13,7 @@
     "submit": "tsx src/scripts/submit-translation.ts",
     "download": "tsx src/scripts/download-translation.ts",
     "extract": "tsx src/scripts/extract-text.ts",
-    "debug-idml": "tsx src/scripts/debug-idml.ts"
+    "debug-idml": "tsx src/scripts-debugging/debug-idml.ts"
   },
   "keywords": ["indesign", "idml", "translation", "webhook", "typescript"],
   "author": "",

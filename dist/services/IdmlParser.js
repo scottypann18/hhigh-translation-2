@@ -236,7 +236,8 @@ export class IdmlParser {
                 newZip.file(filename, content);
             }
         }
-        // Update story files with new text content and direction
+        // Get the expansion factor for the target language
+        // Update story files with new text content, direction, and font size scaling
         await this.updateStoryFilesWithLanguage(newZip, textBoxes, targetLanguage);
         // Generate the updated IDML file
         return await newZip.generateAsync({ type: 'nodebuffer' });
@@ -273,19 +274,37 @@ export class IdmlParser {
     }
     async updateStoryFilesWithLanguage(zip, textBoxes, targetLanguage) {
         const storyFiles = Object.keys(zip.files).filter(name => name.startsWith('Stories/Story_') && name.endsWith('.xml'));
-        // Get the text direction for the target language
+        console.log(`\n=== updateStoryFilesWithLanguage DEBUG ===`);
+        console.log(`Story files found: ${storyFiles.length}`);
+        console.log(`TextBoxes to update: ${textBoxes.length}`);
+        console.log(`TextBox IDs:`, textBoxes.map(tb => `${tb.id} (storyId: ${tb.storyId})`));
+        // Get the text direction and expansion factor for the target language
         const textDirection = LanguageConfigManager.getTextDirection(targetLanguage);
+        const expansionFactor = LanguageConfigManager.getExpansionFactor(targetLanguage);
+        // Calculate font size scaling: if text expands 115%, reduce font to ~87% (1/1.15)
+        const fontSizeScale = 1 / expansionFactor;
+        console.log(`Font size scaling for ${targetLanguage}: ${(fontSizeScale * 100).toFixed(1)}% (expansion: ${(expansionFactor * 100).toFixed(0)}%)`);
         for (const storyFile of storyFiles) {
             const storyId = storyFile.replace('Stories/', '').replace('.xml', '');
             const relevantTextBoxes = textBoxes.filter(tb => tb.storyId === storyId);
+            console.log(`\nProcessing ${storyFile}:`);
+            console.log(`  Story ID: ${storyId}`);
+            console.log(`  Relevant textboxes: ${relevantTextBoxes.length}`);
             if (relevantTextBoxes.length > 0) {
                 const file = zip.files[storyFile];
                 const content = await file.async('text');
-                // Update both content and direction
-                const updatedContent = await this.updateStoryContentWithDirection(content, relevantTextBoxes, textDirection);
+                console.log(`  Original content preview: ${content.substring(content.indexOf('<Content>'), content.indexOf('</Content>') + 10)}`);
+                // Update content, direction, and font size
+                const updatedContent = await this.updateStoryContentWithDirection(content, relevantTextBoxes, textDirection, fontSizeScale);
+                console.log(`  Updated content preview: ${updatedContent.substring(updatedContent.indexOf('<Content>'), updatedContent.indexOf('</Content>') + 10)}`);
                 zip.file(storyFile, updatedContent);
+                console.log(`  ✓ Story file updated in zip`);
+            }
+            else {
+                console.log(`  ✗ No matching textboxes for this story`);
             }
         }
+        console.log(`=== END updateStoryFilesWithLanguage DEBUG ===\n`);
     }
     async updateStoryContent(originalContent, textBoxes) {
         const parsed = await parseXML(originalContent);
@@ -300,26 +319,75 @@ export class IdmlParser {
         const builder = new xml2js.Builder();
         return builder.buildObject(parsed);
     }
-    updateTextInParagraphs(paragraphs, newContent) {
-        // This is a simplified update - you may need more sophisticated logic
-        // depending on your specific IDML structure
-        if (paragraphs && paragraphs.length > 0) {
-            if (paragraphs[0].CharacterStyleRange?.[0]?.Content) {
-                paragraphs[0].CharacterStyleRange[0].Content = [newContent];
+    updateTextInParagraphs(paragraphs, newContent, fontSizeScale = 1.0) {
+        // Replace all text content in all paragraphs with the new content
+        console.log(`\n=== updateTextInParagraphs DEBUG ===`);
+        console.log(`New content to insert: ${newContent.substring(0, 50)}...`);
+        console.log(`Font size scale: ${(fontSizeScale * 100).toFixed(1)}%`);
+        console.log(`Paragraphs array exists: ${!!paragraphs}`);
+        console.log(`Paragraphs length: ${paragraphs?.length}`);
+        if (!paragraphs || paragraphs.length === 0) {
+            console.warn('No paragraphs found to update');
+            return;
+        }
+        // Clear all existing content and put the new content in the first paragraph
+        for (let i = 0; i < paragraphs.length; i++) {
+            const para = paragraphs[i];
+            console.log(`Paragraph ${i}:`, para.CharacterStyleRange ? `Has ${para.CharacterStyleRange.length} CharacterStyleRanges` : 'No CharacterStyleRange');
+            if (para.CharacterStyleRange) {
+                for (let j = 0; j < para.CharacterStyleRange.length; j++) {
+                    const charRange = para.CharacterStyleRange[j];
+                    console.log(`  CharRange ${j} before:`, charRange.Content);
+                    // Apply font size scaling if not 1.0
+                    if (fontSizeScale !== 1.0 && charRange.$) {
+                        const currentSize = parseFloat(charRange.$.PointSize || '12');
+                        const newSize = currentSize * fontSizeScale;
+                        charRange.$.PointSize = newSize.toFixed(2);
+                        console.log(`  Font size adjusted: ${currentSize.toFixed(2)}pt → ${newSize.toFixed(2)}pt`);
+                    }
+                    if (i === 0 && j === 0) {
+                        // Put all the new content in the first character range of the first paragraph
+                        charRange.Content = [newContent];
+                        console.log(`  CharRange ${j} after (NEW CONTENT):`, charRange.Content[0].substring(0, 50));
+                    }
+                    else {
+                        // Clear content from all other character ranges
+                        charRange.Content = [''];
+                        console.log(`  CharRange ${j} after (CLEARED)`);
+                    }
+                }
             }
         }
+        console.log(`=== END updateTextInParagraphs DEBUG ===\n`);
     }
-    async updateStoryContentWithDirection(originalContent, textBoxes, textDirection) {
+    async updateStoryContentWithDirection(originalContent, textBoxes, textDirection, fontSizeScale = 1.0) {
         const parsed = await parseXML(originalContent);
+        // The root is idPkg:Story
+        const root = parsed['idPkg:Story'];
+        if (!root) {
+            console.error('Could not find idPkg:Story element in XML');
+            return originalContent;
+        }
+        // The actual Story element is nested inside
+        const story = root.Story?.[0] || root;
+        if (!story) {
+            console.error('Could not find Story element');
+            return originalContent;
+        }
         // Update story direction at the story level
-        if (parsed.idPkg?.Story?.[0]?.StoryPreference?.[0]) {
-            parsed.idPkg.Story[0].StoryPreference[0].$.StoryDirection = textDirection;
+        if (story.StoryPreference?.[0]) {
+            story.StoryPreference[0].$.StoryDirection = textDirection;
+            console.log(`Set story direction to: ${textDirection}`);
         }
         // Update the content in the parsed XML
-        if (parsed.idPkg?.Story?.[0]?.ParagraphStyleRange) {
+        if (story.ParagraphStyleRange) {
             for (const textBox of textBoxes) {
-                this.updateTextInParagraphs(parsed.idPkg.Story[0].ParagraphStyleRange, textBox.content);
+                console.log(`Updating story with translated content: ${textBox.content.substring(0, 50)}...`);
+                this.updateTextInParagraphs(story.ParagraphStyleRange, textBox.content, fontSizeScale);
             }
+        }
+        else {
+            console.error('No ParagraphStyleRange found in story');
         }
         // Convert back to XML
         const xml2js = await import('xml2js');

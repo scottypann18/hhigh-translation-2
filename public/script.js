@@ -1,29 +1,114 @@
 // Clerk Authentication Setup
 let clerk;
-let sessionToken = null;
+let isAuthenticated = false;
+
+// Load Clerk SDK dynamically with publishable key
+async function loadClerkSDK(publishableKey) {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if (window.Clerk) {
+      resolve(window.Clerk);
+      return;
+    }
+
+    // Try multiple CDN sources
+    const cdnUrls = [
+      'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js',
+      'https://unpkg.com/@clerk/clerk-js@5/dist/clerk.browser.js'
+    ];
+
+    let currentIndex = 0;
+
+    function tryLoadFromCDN() {
+      if (currentIndex >= cdnUrls.length) {
+        reject(new Error('Failed to load Clerk SDK from all CDN sources'));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = cdnUrls[currentIndex];
+      script.crossOrigin = 'anonymous';
+      // Set the publishable key so Clerk doesn't auto-initialize without it
+      script.setAttribute('data-clerk-publishable-key', publishableKey);
+      
+      script.onload = () => {
+        // Give it a moment to initialize
+        setTimeout(() => {
+          if (window.Clerk) {
+            console.log('✅ Clerk loaded from:', cdnUrls[currentIndex]);
+            resolve(window.Clerk);
+          } else {
+            console.warn('❌ Clerk not found from:', cdnUrls[currentIndex]);
+            currentIndex++;
+            script.remove();
+            tryLoadFromCDN();
+          }
+        }, 200);
+      };
+      
+      script.onerror = () => {
+        console.warn('❌ Failed to load from:', cdnUrls[currentIndex]);
+        currentIndex++;
+        script.remove();
+        tryLoadFromCDN();
+      };
+      
+      document.head.appendChild(script);
+    }
+
+    tryLoadFromCDN();
+  });
+}
 
 // Initialize Clerk and check authentication
 async function initializeAuth() {
   try {
-    // Get Clerk Publishable Key from environment/server
+    // Get Clerk Publishable Key from server FIRST
+    console.log('Fetching Clerk config...');
     const response = await fetch('/api/config');
     const config = await response.json();
     
     if (!config.clerkPublishableKey) {
       console.error('Clerk publishable key not configured');
-      showAuthRequired();
+      document.getElementById('authLoading').innerHTML = '<p style="color: red;">⚠️ Authentication not configured. Please set CLERK_PUBLISHABLE_KEY in .env</p>';
       return;
     }
 
-    // Initialize Clerk
-    clerk = window.Clerk;
-    await clerk.load({
-      publishableKey: config.clerkPublishableKey
-    });
+    console.log('Got publishable key, loading Clerk SDK...');
+    
+    // NOW load Clerk SDK with the key
+    await loadClerkSDK(config.clerkPublishableKey);
+    console.log('Clerk SDK loaded, checking for auto-initialized instance...');
+    
+    // When loaded with data-clerk-publishable-key, Clerk auto-initializes
+    // Check if there's already an instance available
+    if (window.Clerk && typeof window.Clerk === 'function') {
+      // It's the Clerk class - instantiate it
+      console.log('Found Clerk class, creating instance...');
+      clerk = new window.Clerk(config.clerkPublishableKey);
+      await clerk.load({
+        appearance: {
+          baseTheme: 'light'
+        }
+      });
+    } else if (window.Clerk && window.Clerk.load) {
+      // It's already an instance - just use it
+      console.log('Found Clerk instance, using it...');
+      clerk = window.Clerk;
+      await clerk.load({
+        appearance: {
+          baseTheme: 'light'
+        }
+      });
+    } else {
+      throw new Error('Clerk loaded but not in expected format');
+    }
+
+    console.log('Clerk initialized, user:', clerk.user);
 
     // Check if user is signed in
     if (clerk.user) {
-      sessionToken = await clerk.session.getToken();
+      isAuthenticated = true;
       showMainApp();
       mountClerkComponents();
     } else {
@@ -31,14 +116,15 @@ async function initializeAuth() {
       mountSignIn();
     }
 
-    // Listen for auth changes
-    clerk.addListener(({ user, session }) => {
-      if (user && session) {
-        sessionToken = session.getToken();
+    // Listen for auth state changes
+    clerk.addListener((payload) => {
+      console.log('Auth state changed:', payload);
+      if (clerk.user) {
+        isAuthenticated = true;
         showMainApp();
         mountClerkComponents();
       } else {
-        sessionToken = null;
+        isAuthenticated = false;
         showAuthRequired();
         mountSignIn();
       }
@@ -46,7 +132,7 @@ async function initializeAuth() {
 
   } catch (error) {
     console.error('Auth initialization error:', error);
-    showAuthRequired();
+    document.getElementById('authLoading').innerHTML = `<p style="color: red;">⚠️ Authentication error: ${error.message}</p>`;
   }
 }
 
@@ -66,28 +152,36 @@ function showAuthRequired() {
 // Mount Clerk UI components
 function mountClerkComponents() {
   if (clerk && clerk.user) {
-    clerk.mountUserButton(document.getElementById('clerk-user-button'));
+    const userButtonDiv = document.getElementById('clerk-user-button');
+    if (userButtonDiv && !userButtonDiv.hasChildNodes()) {
+      clerk.mountUserButton(userButtonDiv);
+    }
   }
 }
 
 function mountSignIn() {
   if (clerk) {
-    clerk.mountSignIn(document.getElementById('clerk-signin'));
+    const signInDiv = document.getElementById('clerk-signin');
+    if (signInDiv && !signInDiv.hasChildNodes()) {
+      clerk.mountSignIn(signInDiv, {
+        appearance: {
+          baseTheme: 'light'
+        }
+      });
+    }
   }
 }
 
 // Helper function to make authenticated API calls
+// Clerk handles session cookies automatically via the clerkMiddleware
 async function authenticatedFetch(url, options = {}) {
-  if (!sessionToken) {
+  if (!isAuthenticated) {
     throw new Error('Not authenticated');
   }
 
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${sessionToken}`
-  };
-
-  return fetch(url, { ...options, headers });
+  // Clerk middleware handles authentication via cookies automatically
+  // We don't need to manually add Authorization headers
+  return fetch(url, options);
 }
 
 // Initialize auth on page load

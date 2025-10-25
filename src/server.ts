@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { promises as fs } from 'fs';
+import cookieParser from 'cookie-parser';
 import { clerkMiddleware } from '@clerk/express';
 import { TranslationService } from './services/TranslationService.js';
 import { WebhookService } from './services/WebhookService.js';
@@ -34,6 +35,7 @@ const upload = multer({
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
 
 // Clerk Authentication Middleware
 // This makes Clerk authentication available to all routes

@@ -1,0 +1,16 @@
+node_modules
+src
+.git
+.env
+.env.*
+README.md
+WEB_INTERFACE.md
+tsconfig.json
+.vscode
+.DS_Store
+*.log
+npm-debug.log*
+input/*
+output/*
+!input/.gitkeep
+!output/.gitkeep

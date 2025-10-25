@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = parseInt(process.env.PORT || '3000', 10);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -154,9 +154,9 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Start server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`\n🚀 IDML Translation Frontend`);
-  console.log(`\n📍 Server running at: http://localhost:${port}`);
+  console.log(`\n📍 Server running at: http://0.0.0.0:${port}`);
   console.log(`\n✅ Environment configured:`);
   console.log(`   Submit webhook: ${process.env.TRANSLATION_SUBMIT_WEBHOOK_URL ? '✓' : '✗'}`);
   console.log(`   Download webhook: ${process.env.TRANSLATION_DOWNLOAD_WEBHOOK_URL ? '✓' : '✗'}`);

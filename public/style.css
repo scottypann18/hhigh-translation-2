@@ -318,6 +318,67 @@ input[type="file"] {
   word-break: break-all;
 }
 
+/* Authentication Styles */
+.auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+}
+
+.auth-required {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 3rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.auth-card h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.auth-card p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+#clerk-signin {
+  margin-top: 2rem;
+}
+
+/* Header with User Menu */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+}
+
+.header-content > div:first-child {
+  text-align: left;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 @media (max-width: 640px) {
   body {
     padding: 1rem 0.5rem;

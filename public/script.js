@@ -1,3 +1,98 @@
+// Clerk Authentication Setup
+let clerk;
+let sessionToken = null;
+
+// Initialize Clerk and check authentication
+async function initializeAuth() {
+  try {
+    // Get Clerk Publishable Key from environment/server
+    const response = await fetch('/api/config');
+    const config = await response.json();
+    
+    if (!config.clerkPublishableKey) {
+      console.error('Clerk publishable key not configured');
+      showAuthRequired();
+      return;
+    }
+
+    // Initialize Clerk
+    clerk = window.Clerk;
+    await clerk.load({
+      publishableKey: config.clerkPublishableKey
+    });
+
+    // Check if user is signed in
+    if (clerk.user) {
+      sessionToken = await clerk.session.getToken();
+      showMainApp();
+      mountClerkComponents();
+    } else {
+      showAuthRequired();
+      mountSignIn();
+    }
+
+    // Listen for auth changes
+    clerk.addListener(({ user, session }) => {
+      if (user && session) {
+        sessionToken = session.getToken();
+        showMainApp();
+        mountClerkComponents();
+      } else {
+        sessionToken = null;
+        showAuthRequired();
+        mountSignIn();
+      }
+    });
+
+  } catch (error) {
+    console.error('Auth initialization error:', error);
+    showAuthRequired();
+  }
+}
+
+// Show/hide UI states
+function showMainApp() {
+  document.getElementById('authLoading').style.display = 'none';
+  document.getElementById('authRequired').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+}
+
+function showAuthRequired() {
+  document.getElementById('authLoading').style.display = 'none';
+  document.getElementById('authRequired').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+// Mount Clerk UI components
+function mountClerkComponents() {
+  if (clerk && clerk.user) {
+    clerk.mountUserButton(document.getElementById('clerk-user-button'));
+  }
+}
+
+function mountSignIn() {
+  if (clerk) {
+    clerk.mountSignIn(document.getElementById('clerk-signin'));
+  }
+}
+
+// Helper function to make authenticated API calls
+async function authenticatedFetch(url, options = {}) {
+  if (!sessionToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${sessionToken}`
+  };
+
+  return fetch(url, { ...options, headers });
+}
+
+// Initialize auth on page load
+initializeAuth();
+
 // Analyze Form Elements
 const analyzeForm = document.getElementById('analyzeForm');
 const analyzeFileInput = document.getElementById('analyzeFile');
@@ -64,8 +159,8 @@ analyzeForm.addEventListener('submit', async (e) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Submit to backend
-    const response = await fetch('/api/analyze', {
+    // Submit to backend with authentication
+    const response = await authenticatedFetch('/api/analyze', {
       method: 'POST',
       body: formData
     });
@@ -132,8 +227,8 @@ form.addEventListener('submit', async (e) => {
     if (startIndex) formData.append('startIndex', startIndex);
     if (endIndex) formData.append('endIndex', endIndex);
 
-    // Submit to backend
-    const response = await fetch('/api/submit', {
+    // Submit to backend with authentication
+    const response = await authenticatedFetch('/api/submit', {
       method: 'POST',
       body: formData
     });

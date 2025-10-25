@@ -4,8 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { promises as fs } from 'fs';
+import { clerkMiddleware } from '@clerk/express';
 import { TranslationService } from './services/TranslationService.js';
 import { WebhookService } from './services/WebhookService.js';
+import { requireAuth } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -33,6 +35,10 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 
+// Clerk Authentication Middleware
+// This makes Clerk authentication available to all routes
+app.use(clerkMiddleware());
+
 // Initialize services
 const translationService = new TranslationService({
   submitUrl: process.env.TRANSLATION_SUBMIT_WEBHOOK_URL || '',
@@ -41,7 +47,7 @@ const translationService = new TranslationService({
 });
 
 // API endpoint for analyzing IDML files (pre-run)
-app.post('/api/analyze', upload.single('file'), async (req, res) => {
+app.post('/api/analyze', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -87,7 +93,7 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
 });
 
 // API endpoint for submitting translations
-app.post('/api/submit', upload.single('file'), async (req, res) => {
+app.post('/api/submit', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -139,6 +145,13 @@ app.post('/api/submit', upload.single('file'), async (req, res) => {
       error: error.message || 'Failed to submit translation'
     });
   }
+});
+
+// Config endpoint (public - provides Clerk publishable key)
+app.get('/api/config', (req, res) => {
+  res.json({
+    clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || ''
+  });
 });
 
 // Health check endpoint

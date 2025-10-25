@@ -1,14 +1,86 @@
 # IDML Translation Tool
 
-A TypeScript-based tool for extracting text from Adobe InDesign IDML files, sending it for human translation in Google Docs via webhooks and make.com, and creating translated IDML files with proper RTL/LTR support. Note there is no UI it is designed to run using the CLI.
+A TypeScript-based tool for extracting text from Adobe InDesign IDML files, sending it for human translation in Google Docs via webhooks and make.com, and creating translated IDML files with proper RTL/LTR support.
 
 ## Features
 
+- 🔐 **Secure Authentication** - User authentication via Clerk
+- 🌐 **Web Interface** - Modern browser-based UI for easy file submission
 - 📄 Extract text from IDML files
-- 🌐 Support for 14+ languages with automatic RTL/LTR detection
+- � Support for 14+ languages with automatic RTL/LTR detection
 - 🔄 Webhook integration for translation workflow
 - 📝 Automatic text direction setting for RTL languages
 - 🎨 Preserves InDesign formatting and structure
+- 💻 CLI tools for advanced users
+
+## Quick Start
+
+### 1. Setup Authentication
+
+This app uses [Clerk](https://clerk.com) for authentication. See [CLERK_SETUP.md](./CLERK_SETUP.md) for detailed setup instructions.
+
+**Quick setup:**
+1. Create account at [clerk.com](https://clerk.com)
+2. Get your API keys from the dashboard
+3. Add to `.env`:
+```bash
+CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+CLERK_SECRET_KEY=sk_test_xxxxx
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Webhooks
+
+Add your webhook URLs to `.env`:
+```bash
+TRANSLATION_SUBMIT_WEBHOOK_URL=https://your-make-scenario.com/submit
+TRANSLATION_DOWNLOAD_WEBHOOK_URL=https://your-make-scenario.com/status
+```
+
+### 4. Build and Run
+
+```bash
+npm run build
+npm start
+```
+
+Then open `http://localhost:3000` in your browser!
+
+## Two Ways to Use
+
+### Option 1: Web Interface (Recommended)
+
+See [WEB_INTERFACE.md](./WEB_INTERFACE.md) for the complete web interface guide.
+
+1. Start the server: `npm start`
+2. Open `http://localhost:3000`
+3. Sign in with Clerk authentication
+4. Upload your IDML file and select languages
+5. Submit for translation!
+
+### Option 2: Command Line (Advanced)
+
+For advanced users who prefer CLI:
+
+```bash
+npm run submit -- input/document.idml en fa
+npm run download -- input/document.idml <google-doc-id> fa
+```
+
+## Authentication
+
+This app requires user authentication for security. All users must sign in before:
+- Analyzing IDML files
+- Submitting files for translation
+
+**Optional:** Restrict access to specific users by setting `ALLOWED_USER_IDS` in `.env`.
+
+See [CLERK_SETUP.md](./CLERK_SETUP.md) for complete authentication setup.
 
 ## Setup
 

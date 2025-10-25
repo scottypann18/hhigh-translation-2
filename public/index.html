@@ -5,12 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IDML Translation Tool</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Clerk Frontend SDK -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    crossorigin="anonymous"
+  ></script>
 </head>
 <body>
-  <div class="container">
+  <!-- Authentication Loading State -->
+  <div id="authLoading" class="auth-loading">
+    <div class="spinner"></div>
+    <p>Checking authentication...</p>
+  </div>
+
+  <!-- Login Required State -->
+  <div id="authRequired" class="auth-required" style="display: none;">
+    <div class="auth-card">
+      <h1>🔐 Authentication Required</h1>
+      <p>Please sign in to use the IDML Translation Tool</p>
+      <div id="clerk-signin"></div>
+    </div>
+  </div>
+
+  <!-- Main App (shown when authenticated) -->
+  <div id="mainApp" class="container" style="display: none;">
     <header>
-      <h1>📄 IDML Translation Tool</h1>
-      <p>Submit InDesign files for translation</p>
+      <div class="header-content">
+        <div>
+          <h1>📄 IDML Translation Tool</h1>
+          <p>Submit InDesign files for translation</p>
+        </div>
+        <div class="user-menu">
+          <div id="clerk-user-button"></div>
+        </div>
+      </div>
     </header>
 
     <main>
@@ -153,6 +182,11 @@
     </main>
   </div>
 
+  <!-- Initialize Clerk before loading app script -->
+  <script>
+    // Get Clerk Publishable Key from server
+    const CLERK_PUBLISHABLE_KEY = '{{CLERK_PUBLISHABLE_KEY}}';
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
